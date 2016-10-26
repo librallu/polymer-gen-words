@@ -1,0 +1,7 @@
+{
+  "name": "polymer-gen-word",
+  "short_name": "polymer-gen-word",
+  "description": "An application that generates words learned by a list of words",
+  "start_url": "/",
+  "display": "standalone"
+}

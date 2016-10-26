@@ -1,0 +1,198 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="bower_components/paper-item/paper-item.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-input/paper-textarea.html">
+
+<link rel="import" href="my-icons.html">
+
+<dom-module id="gen-words-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+        text-align: center;
+        font-family: sans-serif;
+        --app-primary-color: #1EAE55;
+        --app-secondary-color: black;
+      }
+
+      app-toolbar {
+        background-color: var(--app-primary-color);
+        font-family: Helvetica, sans-serif;
+        color: white;
+        --app-toolbar-font-size: 24px;
+      }
+
+      paper-button {
+        background-color: var(--app-primary-color);
+        color: white;
+        display: block;
+        width: 200px;
+        margin: auto;
+        margin-top: 10px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      paper-input, paper-textarea {
+        width: 80%;
+        margin: auto;
+      }
+
+      paper-textarea {
+        margin-bottom: 30px;
+        margin-top: 20px;
+      }
+
+      #result {
+        border: 1px solid #666;
+        background-color: #ddd;
+        padding: 10px;
+        width: 80%;
+        margin: auto;
+        margin-top: 30px;
+        margin-bottom: 30px;
+      }
+    </style>
+
+    <app-drawer-layout fullbleed>
+      <app-drawer>
+        <app-toolbar>Examples</app-toolbar>
+        <paper-menu selected="0">
+          <paper-item on-tap="exampleFrench">French text (Candide)</paper-item>
+          <paper-item on-tap="exampleEnglish">English text (Sherlock Holmes)</paper-item>
+        </paper-menu>
+      </app-drawer>
+
+      <app-header-layout has-scrolling-region>
+
+        <app-header condenses reveals>
+          <app-toolbar>
+            <paper-icon-button icon="menu" drawer-toggle></paper-icon-button>
+            <div main-title>Word Generator</div>
+          </app-toolbar>
+        </app-header>
+
+        <div id="content">
+          <p id="result"></p>
+          <paper-button on-tap="generateAction" >GENERATE</paper-button>
+          <paper-button on-tap="clearAction" >CLEAR</paper-button>
+          <paper-input label="length of n-grams" value={{order}} auto-validate pattern="[0-9]*" error-message="digits only!" ></paper-input>
+          <paper-input label="output text size" value={{size}} auto-validate pattern="[0-9]*" error-message="digits only!" ></paper-input>
+          <paper-textarea label="Input text" value={{wordlist}}></paper-textarea>
+        </div>
+
+
+        <h2>Credits</h2>
+        <ul>
+          <li>Thanks to <a alt="Daniel Shiffman youtube channel" href="https://www.youtube.com/user/shiffman">Daniel Shiffman</a> for his excellent videos that are inspiring me.</li>
+          <li>bacdefrancais.net for <a href="http://www.bacdefrancais.net/candide-incipit.php" alt="Candide source">Candide source</a></li>
+          <li>Project Gutenberg for <a href="http://www.gutenberg.org/cache/epub/1661/pg1661.txt" alt="Candide source">Sherlock Holmes source</a></li>
+        </ul>
+
+      </app-header-layout>
+    </app-drawer-layout>
+
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'gen-words-app',
+
+      properties: {
+        wordlist: {
+          type: String,
+          value: ""
+        },
+        order: {
+          type: Number,
+          value: 7
+        },
+        size: {
+          type: Number,
+          value: 500
+        }
+      },
+
+      clearAction: function() {
+        this.result.innerHTML = "";
+      },
+
+      ready: function() {
+        this.result = this.querySelector("#result");
+      },
+
+      generateNGrams: function() {
+
+        // compute all n-grams and their successors.
+        var ngrams = {};
+        for ( var i = 0 ; i < this.wordlist.length-this.order+1 ; i++ ) {
+          var gram = this.wordlist.substring(i, i+this.order);
+          if ( !ngrams[gram] ) {
+            ngrams[gram] = [];
+          }
+          ngrams[gram].push(this.wordlist.charAt(i+this.order));
+        }
+
+        this.ngrams = ngrams;
+      },
+
+      generateWord: function() {
+        var rand_i = Math.floor(Math.random()*(this.wordlist.length-3));
+        var current = this.wordlist.substring(rand_i, rand_i+this.order);
+        var res = current;
+
+        for ( var i = 3 ; i < this.size ; i++ ) {
+          var possibilities = this.ngrams[current];
+          if (!possibilities) break;
+          var next = possibilities[Math.floor(Math.random()*possibilities.length)];
+          res += next;
+          current = res.substring(res.length-this.order , res.length);
+        }
+
+        return res;
+      },
+
+      generateAction: function() {
+        this.size = Number.parseInt(this.size);
+        this.order = Number.parseInt(this.order);
+        this.generateNGrams();
+        var w = this.generateWord();
+        this.result.innerHTML += w+"<br/>";
+      },
+
+
+      exampleFrench: function() {
+        var client = new XMLHttpRequest();
+        client.open('GET', '/candide.txt');
+        var self = this;
+        client.onreadystatechange = function() {
+          self.wordlist = client.responseText;
+          self.order = 7;
+        }
+        client.send();
+      },
+
+      exampleEnglish: function() {
+        var client = new XMLHttpRequest();
+        client.open('GET', '/sherlock.txt');
+        var self = this;
+        client.onreadystatechange = function() {
+          self.wordlist = client.responseText;
+          self.order = 7;
+        }
+        client.send();
+      },
+
+    });
+  </script>
+</dom-module>
